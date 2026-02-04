@@ -5,6 +5,7 @@ import {
   createInitialState,
   placeFood,
   placeObstacle,
+  placeObstacleCluster,
   queueDirection,
   stepGame
 } from '../src/gameLogic.js';
@@ -17,6 +18,37 @@ function sequenceRandom(values) {
     }
     return list.shift();
   };
+}
+
+function isStraightContiguousLine(cells) {
+  if (cells.length < 2) {
+    return true;
+  }
+
+  const sortedByXThenY = [...cells].sort((a, b) => (a.x - b.x) || (a.y - b.y));
+  const sortedByYThenX = [...cells].sort((a, b) => (a.y - b.y) || (a.x - b.x));
+
+  const sameX = cells.every((cell) => cell.x === cells[0].x);
+  if (sameX) {
+    for (let i = 1; i < sortedByYThenX.length; i += 1) {
+      if (sortedByYThenX[i].y !== sortedByYThenX[i - 1].y + 1) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  const sameY = cells.every((cell) => cell.y === cells[0].y);
+  if (sameY) {
+    for (let i = 1; i < sortedByXThenY.length; i += 1) {
+      if (sortedByXThenY[i].x !== sortedByXThenY[i - 1].x + 1) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  return false;
 }
 
 test('snake moves one cell per step in current direction', () => {
@@ -118,16 +150,29 @@ test('placeObstacle avoids snake, food, and existing obstacles', () => {
   assert.deepEqual(obstacle, { x: 1, y: 1 });
 });
 
-test('stepGame spawns an obstacle on spawn interval with matching random chance', () => {
+test('placeObstacleCluster creates at least 3 connected blocks in one direction', () => {
+  const cluster = placeObstacleCluster(8, [{ x: 0, y: 0 }], { x: 7, y: 7 }, [], 3, () => 0);
+
+  assert.equal(cluster.length, 3);
+  assert.equal(isStraightContiguousLine(cluster), true);
+});
+
+test('obstacles spawn only after the snake eats an apple', () => {
   const state = {
     ...createInitialState(10),
-    tickCount: 5,
     snake: [{ x: 5, y: 5 }, { x: 4, y: 5 }, { x: 3, y: 5 }],
-    food: { x: 8, y: 8 },
+    direction: 'RIGHT',
+    pendingDirection: 'RIGHT',
+    food: { x: 6, y: 5 },
     obstacles: []
   };
 
-  const next = stepGame(state, sequenceRandom([0, 0]));
-  assert.equal(next.obstacles.length, 1);
-  assert.notDeepEqual(next.obstacles[0], next.food);
+  const afterEat = stepGame(state, sequenceRandom([0, 0, 0]));
+  assert.equal(afterEat.obstacles.length >= 3, true);
+
+  const withoutEat = stepGame(
+    { ...state, food: { x: 9, y: 9 }, obstacles: [] },
+    sequenceRandom([0, 0, 0])
+  );
+  assert.equal(withoutEat.obstacles.length, 0);
 });

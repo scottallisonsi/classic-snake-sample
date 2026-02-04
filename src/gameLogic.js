@@ -12,8 +12,7 @@ export const OPPOSITE_DIRECTION = {
   RIGHT: 'LEFT'
 };
 
-const OBSTACLE_SPAWN_INTERVAL = 6;
-const OBSTACLE_SPAWN_CHANCE = 0.3;
+const MIN_OBSTACLE_CLUSTER_SIZE = 3;
 
 export function createInitialState(gridSize = 20) {
   const center = Math.floor(gridSize / 2);
@@ -30,7 +29,6 @@ export function createInitialState(gridSize = 20) {
     pendingDirection: 'RIGHT',
     food: placeFood(gridSize, snake, []),
     obstacles: [],
-    tickCount: 0,
     score: 0,
     gameOver: false,
     paused: false
@@ -81,20 +79,21 @@ export function stepGame(state, randomFn = Math.random) {
     snake.pop();
   }
 
-  const tickCount = state.tickCount + 1;
-  const maxObstacles = Math.max(6, Math.floor(state.gridSize / 2));
   let food = willEat ? placeFood(state.gridSize, snake, state.obstacles, randomFn) : state.food;
   let obstacles = state.obstacles;
 
-  if (
-    tickCount % OBSTACLE_SPAWN_INTERVAL === 0 &&
-    obstacles.length < maxObstacles &&
-    randomFn() < OBSTACLE_SPAWN_CHANCE
-  ) {
-    const nextObstacle = placeObstacle(state.gridSize, snake, food, obstacles, randomFn);
-    if (nextObstacle) {
-      obstacles = [...obstacles, nextObstacle];
-      if (food && food.x === nextObstacle.x && food.y === nextObstacle.y) {
+  if (willEat) {
+    const cluster = placeObstacleCluster(
+      state.gridSize,
+      snake,
+      food,
+      obstacles,
+      MIN_OBSTACLE_CLUSTER_SIZE,
+      randomFn
+    );
+    if (cluster.length > 0) {
+      obstacles = [...obstacles, ...cluster];
+      if (food && cluster.some((segment) => segment.x === food.x && segment.y === food.y)) {
         food = placeFood(state.gridSize, snake, obstacles, randomFn);
       }
     }
@@ -105,7 +104,6 @@ export function stepGame(state, randomFn = Math.random) {
     snake,
     direction,
     pendingDirection: direction,
-    tickCount,
     obstacles,
     score: state.score + (willEat ? 1 : 0),
     food
@@ -156,4 +154,74 @@ export function placeObstacle(gridSize, snake, food, obstacles, randomFn = Math.
   }
 
   return pickFreeCell(gridSize, occupied, randomFn);
+}
+
+export function placeObstacleCluster(
+  gridSize,
+  snake,
+  food,
+  obstacles,
+  minSize = MIN_OBSTACLE_CLUSTER_SIZE,
+  randomFn = Math.random
+) {
+  const occupied = new Set([
+    ...snake.map((segment) => `${segment.x},${segment.y}`),
+    ...obstacles.map((obstacle) => `${obstacle.x},${obstacle.y}`)
+  ]);
+
+  if (food) {
+    occupied.add(`${food.x},${food.y}`);
+  }
+
+  const freeCells = [];
+  for (let y = 0; y < gridSize; y += 1) {
+    for (let x = 0; x < gridSize; x += 1) {
+      const key = `${x},${y}`;
+      if (!occupied.has(key)) {
+        freeCells.push({ x, y });
+      }
+    }
+  }
+
+  if (freeCells.length < minSize) {
+    return [];
+  }
+
+  const vectors = [DIRECTIONS.UP, DIRECTIONS.RIGHT, DIRECTIONS.DOWN, DIRECTIONS.LEFT];
+  const startOffset = Math.floor(randomFn() * freeCells.length);
+  const directionOffset = Math.floor(randomFn() * vectors.length);
+
+  for (let startIdx = 0; startIdx < freeCells.length; startIdx += 1) {
+    const start = freeCells[(startOffset + startIdx) % freeCells.length];
+
+    for (let dirIdx = 0; dirIdx < vectors.length; dirIdx += 1) {
+      const vector = vectors[(directionOffset + dirIdx) % vectors.length];
+      const cluster = [];
+      let valid = true;
+
+      for (let step = 0; step < minSize; step += 1) {
+        const x = start.x + vector.x * step;
+        const y = start.y + vector.y * step;
+
+        if (x < 0 || y < 0 || x >= gridSize || y >= gridSize) {
+          valid = false;
+          break;
+        }
+
+        const key = `${x},${y}`;
+        if (occupied.has(key)) {
+          valid = false;
+          break;
+        }
+
+        cluster.push({ x, y });
+      }
+
+      if (valid) {
+        return cluster;
+      }
+    }
+  }
+
+  return [];
 }
