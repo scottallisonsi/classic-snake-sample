@@ -83,6 +83,27 @@ function drawApple(x, y) {
   context.fill();
 }
 
+function drawOrange(x, y) {
+  const cx = x * CELL_SIZE + CELL_SIZE / 2;
+  const cy = y * CELL_SIZE + CELL_SIZE / 2;
+  const r = CELL_SIZE * 0.34;
+
+  context.fillStyle = '#f28b1d';
+  context.beginPath();
+  context.arc(cx, cy, r, 0, Math.PI * 2);
+  context.fill();
+
+  context.fillStyle = '#f7a944';
+  context.beginPath();
+  context.arc(cx - r * 0.25, cy - r * 0.25, r * 0.35, 0, Math.PI * 2);
+  context.fill();
+
+  context.fillStyle = '#3f8f3f';
+  context.beginPath();
+  context.ellipse(cx + 2, cy - r * 0.95, 3.5, 2, -0.35, 0, Math.PI * 2);
+  context.fill();
+}
+
 function drawSnakeBody(segment, index, length) {
   const cx = segment.x * CELL_SIZE + CELL_SIZE / 2;
   const cy = segment.y * CELL_SIZE + CELL_SIZE / 2;
@@ -185,7 +206,11 @@ function render() {
   });
 
   if (gameState.food) {
-    drawApple(gameState.food.x, gameState.food.y);
+    if (gameState.foodType === 'ORANGE') {
+      drawOrange(gameState.food.x, gameState.food.y);
+    } else {
+      drawApple(gameState.food.x, gameState.food.y);
+    }
   }
 
   gameState.snake.forEach((segment, index) => {

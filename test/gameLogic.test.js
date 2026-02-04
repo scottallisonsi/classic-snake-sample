@@ -51,6 +51,11 @@ function isStraightContiguousLine(cells) {
   return false;
 }
 
+test('initial food type starts as APPLE', () => {
+  const state = createInitialState(10);
+  assert.equal(state.foodType, 'APPLE');
+});
+
 test('snake moves one cell per step in current direction', () => {
   const state = createInitialState(10);
   const next = stepGame(state);
@@ -60,16 +65,32 @@ test('snake moves one cell per step in current direction', () => {
   assert.equal(next.snake.length, state.snake.length);
 });
 
-test('snake grows and score increments when eating food', () => {
+test('snake grows, score increments, and fruit toggles when eating food', () => {
   const state = createInitialState(10);
   const foodAhead = { x: state.snake[0].x + 1, y: state.snake[0].y };
-  const ready = { ...state, food: foodAhead };
+  const ready = { ...state, food: foodAhead, foodType: 'APPLE' };
 
   const next = stepGame(ready);
 
   assert.equal(next.snake.length, ready.snake.length + 1);
   assert.equal(next.score, ready.score + 1);
   assert.notEqual(next.food, null);
+  assert.equal(next.foodType, 'ORANGE');
+});
+
+test('fruit toggles back to APPLE after next eat', () => {
+  const state = {
+    ...createInitialState(10),
+    snake: [{ x: 5, y: 5 }, { x: 4, y: 5 }, { x: 3, y: 5 }],
+    direction: 'RIGHT',
+    pendingDirection: 'RIGHT',
+    food: { x: 6, y: 5 },
+    foodType: 'ORANGE',
+    obstacles: []
+  };
+
+  const next = stepGame(state, sequenceRandom([0, 0, 0]));
+  assert.equal(next.foodType, 'APPLE');
 });
 
 test('snake wraps through walls to the opposite side', () => {

@@ -13,6 +13,7 @@ export const OPPOSITE_DIRECTION = {
 };
 
 const MIN_OBSTACLE_CLUSTER_SIZE = 3;
+const INITIAL_FOOD_TYPE = 'APPLE';
 
 export function createInitialState(gridSize = 20) {
   const center = Math.floor(gridSize / 2);
@@ -28,6 +29,7 @@ export function createInitialState(gridSize = 20) {
     direction: 'RIGHT',
     pendingDirection: 'RIGHT',
     food: placeFood(gridSize, snake, []),
+    foodType: INITIAL_FOOD_TYPE,
     obstacles: [],
     score: 0,
     gameOver: false,
@@ -80,6 +82,7 @@ export function stepGame(state, randomFn = Math.random) {
   }
 
   let food = willEat ? placeFood(state.gridSize, snake, state.obstacles, randomFn) : state.food;
+  const foodType = willEat ? nextFoodType(state.foodType) : state.foodType;
   let obstacles = state.obstacles;
 
   if (willEat) {
@@ -106,8 +109,13 @@ export function stepGame(state, randomFn = Math.random) {
     pendingDirection: direction,
     obstacles,
     score: state.score + (willEat ? 1 : 0),
-    food
+    food,
+    foodType
   };
+}
+
+function nextFoodType(currentType = INITIAL_FOOD_TYPE) {
+  return currentType === 'APPLE' ? 'ORANGE' : 'APPLE';
 }
 
 function pickFreeCell(gridSize, occupied, randomFn) {
