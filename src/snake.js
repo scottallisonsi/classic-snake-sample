@@ -50,21 +50,150 @@ function drawGrid() {
   }
 }
 
-function drawCell(x, y, fill) {
-  context.fillStyle = fill;
-  context.fillRect(x * CELL_SIZE + 1, y * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+function drawObstacle(x, y) {
+  const cx = x * CELL_SIZE + CELL_SIZE / 2;
+  const cy = y * CELL_SIZE + CELL_SIZE / 2;
+  const r = CELL_SIZE * 0.14;
+
+  context.fillStyle = '#6b6b6b';
+  context.beginPath();
+  context.arc(cx - 4, cy + 1, r * 1.2, 0, Math.PI * 2);
+  context.arc(cx + 1, cy - 3, r * 1.4, 0, Math.PI * 2);
+  context.arc(cx + 4, cy + 2, r, 0, Math.PI * 2);
+  context.fill();
+}
+
+function drawApple(x, y) {
+  const cx = x * CELL_SIZE + CELL_SIZE / 2;
+  const cy = y * CELL_SIZE + CELL_SIZE / 2 + 1;
+  const r = CELL_SIZE * 0.33;
+
+  context.fillStyle = '#d64541';
+  context.beginPath();
+  context.arc(cx - r * 0.45, cy, r, 0, Math.PI * 2);
+  context.arc(cx + r * 0.45, cy, r, 0, Math.PI * 2);
+  context.fill();
+
+  context.fillStyle = '#7b3f00';
+  context.fillRect(cx - 1, cy - r * 1.55, 2, 5);
+
+  context.fillStyle = '#4caf50';
+  context.beginPath();
+  context.ellipse(cx + 4, cy - r * 1.15, 4, 2, -0.45, 0, Math.PI * 2);
+  context.fill();
+}
+
+function drawSnakeBody(segment, index, length) {
+  const cx = segment.x * CELL_SIZE + CELL_SIZE / 2;
+  const cy = segment.y * CELL_SIZE + CELL_SIZE / 2;
+  const taper = index / Math.max(1, length - 1);
+  const radius = CELL_SIZE * (0.38 - taper * 0.13);
+
+  context.fillStyle = '#4f9d53';
+  context.beginPath();
+  context.arc(cx, cy, radius, 0, Math.PI * 2);
+  context.fill();
+
+  context.fillStyle = '#79c57a';
+  context.beginPath();
+  context.arc(cx - radius * 0.28, cy - radius * 0.35, radius * 0.42, 0, Math.PI * 2);
+  context.fill();
+}
+
+function drawSnakeHead(segment, direction) {
+  const cx = segment.x * CELL_SIZE + CELL_SIZE / 2;
+  const cy = segment.y * CELL_SIZE + CELL_SIZE / 2;
+  const eyeOffset = CELL_SIZE * 0.18;
+  const eyeRadius = 1.8;
+  const noseOffset = CELL_SIZE * 0.28;
+
+  context.fillStyle = '#2f7d32';
+  context.beginPath();
+  context.arc(cx, cy, CELL_SIZE * 0.43, 0, Math.PI * 2);
+  context.fill();
+
+  let eyes = [];
+  if (direction === 'UP') {
+    eyes = [
+      { x: cx - eyeOffset, y: cy - eyeOffset },
+      { x: cx + eyeOffset, y: cy - eyeOffset }
+    ];
+  } else if (direction === 'DOWN') {
+    eyes = [
+      { x: cx - eyeOffset, y: cy + eyeOffset },
+      { x: cx + eyeOffset, y: cy + eyeOffset }
+    ];
+  } else if (direction === 'LEFT') {
+    eyes = [
+      { x: cx - eyeOffset, y: cy - eyeOffset },
+      { x: cx - eyeOffset, y: cy + eyeOffset }
+    ];
+  } else {
+    eyes = [
+      { x: cx + eyeOffset, y: cy - eyeOffset },
+      { x: cx + eyeOffset, y: cy + eyeOffset }
+    ];
+  }
+
+  context.fillStyle = '#ffffff';
+  eyes.forEach((eye) => {
+    context.beginPath();
+    context.arc(eye.x, eye.y, eyeRadius, 0, Math.PI * 2);
+    context.fill();
+  });
+
+  context.fillStyle = '#111111';
+  eyes.forEach((eye) => {
+    context.beginPath();
+    context.arc(eye.x, eye.y, eyeRadius * 0.5, 0, Math.PI * 2);
+    context.fill();
+  });
+
+  context.strokeStyle = '#b71c1c';
+  context.lineWidth = 1.4;
+  context.beginPath();
+  if (direction === 'UP') {
+    context.moveTo(cx, cy - noseOffset);
+    context.lineTo(cx - 3, cy - noseOffset - 3);
+    context.moveTo(cx, cy - noseOffset);
+    context.lineTo(cx + 3, cy - noseOffset - 3);
+  } else if (direction === 'DOWN') {
+    context.moveTo(cx, cy + noseOffset);
+    context.lineTo(cx - 3, cy + noseOffset + 3);
+    context.moveTo(cx, cy + noseOffset);
+    context.lineTo(cx + 3, cy + noseOffset + 3);
+  } else if (direction === 'LEFT') {
+    context.moveTo(cx - noseOffset, cy);
+    context.lineTo(cx - noseOffset - 3, cy - 3);
+    context.moveTo(cx - noseOffset, cy);
+    context.lineTo(cx - noseOffset - 3, cy + 3);
+  } else {
+    context.moveTo(cx + noseOffset, cy);
+    context.lineTo(cx + noseOffset + 3, cy - 3);
+    context.moveTo(cx + noseOffset, cy);
+    context.lineTo(cx + noseOffset + 3, cy + 3);
+  }
+  context.stroke();
 }
 
 function render() {
   context.clearRect(0, 0, canvas.width, canvas.height);
   drawGrid();
 
+  gameState.obstacles.forEach((obstacle) => {
+    drawObstacle(obstacle.x, obstacle.y);
+  });
+
   if (gameState.food) {
-    drawCell(gameState.food.x, gameState.food.y, '#d64541');
+    drawApple(gameState.food.x, gameState.food.y);
   }
 
   gameState.snake.forEach((segment, index) => {
-    drawCell(segment.x, segment.y, index === 0 ? '#2f7d32' : '#66bb6a');
+    if (index === 0) {
+      drawSnakeHead(segment, gameState.direction);
+    } else {
+      drawSnakeBody(segment, index, gameState.snake.length);
+    }
   });
 
   scoreEl.textContent = String(gameState.score);

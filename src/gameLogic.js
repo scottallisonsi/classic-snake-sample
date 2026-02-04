@@ -12,6 +12,9 @@ export const OPPOSITE_DIRECTION = {
   RIGHT: 'LEFT'
 };
 
+const OBSTACLE_SPAWN_INTERVAL = 6;
+const OBSTACLE_SPAWN_CHANCE = 0.3;
+
 export function createInitialState(gridSize = 20) {
   const center = Math.floor(gridSize / 2);
   const snake = [
@@ -25,7 +28,9 @@ export function createInitialState(gridSize = 20) {
     snake,
     direction: 'RIGHT',
     pendingDirection: 'RIGHT',
-    food: placeFood(gridSize, snake),
+    food: placeFood(gridSize, snake, []),
+    obstacles: [],
+    tickCount: 0,
     score: 0,
     gameOver: false,
     paused: false
@@ -44,7 +49,7 @@ export function queueDirection(state, nextDirection) {
   return nextDirection;
 }
 
-export function stepGame(state) {
+export function stepGame(state, randomFn = Math.random) {
   if (state.gameOver || state.paused) {
     return state;
   }
@@ -52,22 +57,18 @@ export function stepGame(state) {
   const direction = state.pendingDirection;
   const vector = DIRECTIONS[direction];
   const currentHead = state.snake[0];
+  const wrap = (value) => (value + state.gridSize) % state.gridSize;
   const newHead = {
-    x: currentHead.x + vector.x,
-    y: currentHead.y + vector.y
+    x: wrap(currentHead.x + vector.x),
+    y: wrap(currentHead.y + vector.y)
   };
 
-  const hitWall =
-    newHead.x < 0 ||
-    newHead.y < 0 ||
-    newHead.x >= state.gridSize ||
-    newHead.y >= state.gridSize;
-
-  const willEat = newHead.x === state.food.x && newHead.y === state.food.y;
+  const willEat = state.food && newHead.x === state.food.x && newHead.y === state.food.y;
   const bodyToCheck = willEat ? state.snake : state.snake.slice(0, -1);
   const hitSelf = bodyToCheck.some((segment) => segment.x === newHead.x && segment.y === newHead.y);
+  const hitObstacle = state.obstacles.some((obstacle) => obstacle.x === newHead.x && obstacle.y === newHead.y);
 
-  if (hitWall || hitSelf) {
+  if (hitSelf || hitObstacle) {
     return {
       ...state,
       direction,
@@ -80,18 +81,38 @@ export function stepGame(state) {
     snake.pop();
   }
 
+  const tickCount = state.tickCount + 1;
+  const maxObstacles = Math.max(6, Math.floor(state.gridSize / 2));
+  let food = willEat ? placeFood(state.gridSize, snake, state.obstacles, randomFn) : state.food;
+  let obstacles = state.obstacles;
+
+  if (
+    tickCount % OBSTACLE_SPAWN_INTERVAL === 0 &&
+    obstacles.length < maxObstacles &&
+    randomFn() < OBSTACLE_SPAWN_CHANCE
+  ) {
+    const nextObstacle = placeObstacle(state.gridSize, snake, food, obstacles, randomFn);
+    if (nextObstacle) {
+      obstacles = [...obstacles, nextObstacle];
+      if (food && food.x === nextObstacle.x && food.y === nextObstacle.y) {
+        food = placeFood(state.gridSize, snake, obstacles, randomFn);
+      }
+    }
+  }
+
   return {
     ...state,
     snake,
     direction,
     pendingDirection: direction,
+    tickCount,
+    obstacles,
     score: state.score + (willEat ? 1 : 0),
-    food: willEat ? placeFood(state.gridSize, snake) : state.food
+    food
   };
 }
 
-export function placeFood(gridSize, snake, randomFn = Math.random) {
-  const occupied = new Set(snake.map((segment) => `${segment.x},${segment.y}`));
+function pickFreeCell(gridSize, occupied, randomFn) {
   const freeCells = [];
 
   for (let y = 0; y < gridSize; y += 1) {
@@ -109,4 +130,30 @@ export function placeFood(gridSize, snake, randomFn = Math.random) {
 
   const index = Math.floor(randomFn() * freeCells.length);
   return freeCells[index];
+}
+
+export function placeFood(gridSize, snake, obstaclesOrRandom = [], randomFn = Math.random) {
+  const isRandomThirdArg = typeof obstaclesOrRandom === 'function';
+  const obstacles = isRandomThirdArg ? [] : obstaclesOrRandom;
+  const random = isRandomThirdArg ? obstaclesOrRandom : randomFn;
+
+  const occupied = new Set([
+    ...snake.map((segment) => `${segment.x},${segment.y}`),
+    ...obstacles.map((obstacle) => `${obstacle.x},${obstacle.y}`)
+  ]);
+
+  return pickFreeCell(gridSize, occupied, random);
+}
+
+export function placeObstacle(gridSize, snake, food, obstacles, randomFn = Math.random) {
+  const occupied = new Set([
+    ...snake.map((segment) => `${segment.x},${segment.y}`),
+    ...obstacles.map((obstacle) => `${obstacle.x},${obstacle.y}`)
+  ]);
+
+  if (food) {
+    occupied.add(`${food.x},${food.y}`);
+  }
+
+  return pickFreeCell(gridSize, occupied, randomFn);
 }

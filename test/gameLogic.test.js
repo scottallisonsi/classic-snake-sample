@@ -1,7 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createInitialState, placeFood, queueDirection, stepGame } from '../src/gameLogic.js';
+import {
+  createInitialState,
+  placeFood,
+  placeObstacle,
+  queueDirection,
+  stepGame
+} from '../src/gameLogic.js';
+
+function sequenceRandom(values) {
+  const list = [...values];
+  return () => {
+    if (list.length === 0) {
+      return 0;
+    }
+    return list.shift();
+  };
+}
 
 test('snake moves one cell per step in current direction', () => {
   const state = createInitialState(10);
@@ -24,7 +40,7 @@ test('snake grows and score increments when eating food', () => {
   assert.notEqual(next.food, null);
 });
 
-test('game ends on wall collision', () => {
+test('snake wraps through walls to the opposite side', () => {
   const state = {
     ...createInitialState(5),
     snake: [{ x: 4, y: 2 }, { x: 3, y: 2 }, { x: 2, y: 2 }],
@@ -33,7 +49,8 @@ test('game ends on wall collision', () => {
   };
 
   const next = stepGame(state);
-  assert.equal(next.gameOver, true);
+  assert.equal(next.gameOver, false);
+  assert.deepEqual(next.snake[0], { x: 0, y: 2 });
 });
 
 test('game ends on self collision', () => {
@@ -49,6 +66,19 @@ test('game ends on self collision', () => {
     ],
     direction: 'DOWN',
     pendingDirection: 'DOWN'
+  };
+
+  const next = stepGame(state);
+  assert.equal(next.gameOver, true);
+});
+
+test('game ends on obstacle collision', () => {
+  const state = {
+    ...createInitialState(10),
+    snake: [{ x: 3, y: 2 }, { x: 2, y: 2 }, { x: 1, y: 2 }],
+    obstacles: [{ x: 4, y: 2 }],
+    direction: 'RIGHT',
+    pendingDirection: 'RIGHT'
   };
 
   const next = stepGame(state);
@@ -71,4 +101,33 @@ test('placeFood picks only free cells deterministically by randomFn', () => {
 
   const food = placeFood(3, snake, () => 0);
   assert.deepEqual(food, { x: 0, y: 1 });
+});
+
+test('placeFood avoids obstacles', () => {
+  const snake = [{ x: 0, y: 0 }];
+  const obstacles = [{ x: 0, y: 1 }];
+  const food = placeFood(2, snake, obstacles, () => 0);
+  assert.deepEqual(food, { x: 1, y: 0 });
+});
+
+test('placeObstacle avoids snake, food, and existing obstacles', () => {
+  const snake = [{ x: 0, y: 0 }];
+  const food = { x: 1, y: 0 };
+  const obstacles = [{ x: 0, y: 1 }];
+  const obstacle = placeObstacle(2, snake, food, obstacles, () => 0);
+  assert.deepEqual(obstacle, { x: 1, y: 1 });
+});
+
+test('stepGame spawns an obstacle on spawn interval with matching random chance', () => {
+  const state = {
+    ...createInitialState(10),
+    tickCount: 5,
+    snake: [{ x: 5, y: 5 }, { x: 4, y: 5 }, { x: 3, y: 5 }],
+    food: { x: 8, y: 8 },
+    obstacles: []
+  };
+
+  const next = stepGame(state, sequenceRandom([0, 0]));
+  assert.equal(next.obstacles.length, 1);
+  assert.notDeepEqual(next.obstacles[0], next.food);
 });
