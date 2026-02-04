@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snake</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>Snake</h1>
+      <p class="status-row">
+        <span>Score: <strong id="score-value">0</strong></span>
+        <span>High score: <strong id="high-score-value">0</strong></span>
+        <span id="game-state">Running</span>
+      </p>
+      <canvas id="game-board" width="400" height="400" aria-label="Snake game board"></canvas>
+      <div class="buttons">
+        <button id="pause-button" type="button">Pause</button>
+        <button id="restart-button" type="button">Restart</button>
+      </div>
+
+      <div class="touch-controls" aria-label="Touch controls">
+        <button data-direction="UP" type="button">Up</button>
+        <div>
+          <button data-direction="LEFT" type="button">Left</button>
+          <button data-direction="DOWN" type="button">Down</button>
+          <button data-direction="RIGHT" type="button">Right</button>
+        </div>
+      </div>
+
+      <p class="help">Use Arrow keys or WASD.</p>
+    </main>
+    <script type="module" src="./src/snake.js"></script>
+  </body>
+</html>

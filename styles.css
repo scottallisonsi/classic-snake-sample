@@ -1,0 +1,73 @@
+:root {
+  color: #1f1f1f;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f4f4f4;
+}
+
+.container {
+  max-width: 440px;
+  margin: 2rem auto;
+  padding: 1rem;
+  text-align: center;
+}
+
+h1 {
+  margin: 0 0 0.75rem;
+  font-size: 1.6rem;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+}
+
+#game-board {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  border: 1px solid #bdbdbd;
+  background: #ffffff;
+}
+
+.buttons,
+.touch-controls {
+  margin-top: 0.75rem;
+}
+
+button {
+  margin: 0.2rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid #aaaaaa;
+  border-radius: 4px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+button:active {
+  background: #ededed;
+}
+
+.touch-controls {
+  display: none;
+}
+
+.help {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: #575757;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .touch-controls {
+    display: block;
+  }
+}
