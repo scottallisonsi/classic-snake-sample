@@ -2,22 +2,6 @@
 
 Minimal browser Snake game with keyboard and touch controls.
 
-## Run
-
-```bash
-cd "/Users/scottsi/Documents/New project"
-npm run start
-```
-
-Open [http://localhost:5173](http://localhost:5173).
-
-## Test
-
-```bash
-cd "/Users/scottsi/Documents/New project"
-npm test
-```
-
 ## Controls
 
 - Arrow keys or `W/A/S/D`
